@@ -1,36 +1,59 @@
-# Headless Lead Qualifier Webhook (FastAPI)
+# High-Reliability Lead Qualifier (AI Wrapper)
 
-A state-of-the-art FastAPI webhook listener engineered to sit between messy upstream lead sources (Meta Lead Ads, custom landing pages) and downstream CRM systems (GoHighLevel, Make.com, n8n). 
+A production-grade AI Wrapper microservice that acts as a "Zero-Fault Webhook Catcher". It receives inbound leads from Meta Ads, Landing Pages, or forms, strictly qualifies them using an LLM, manages API billing/costs, and ensures zero data loss using a Dead Letter Queue.
 
-## Core Problem Solved
-Marketing platforms frequently send malformed JSON payloads. When integrating via standard Make.com/Zapier webhooks, these malformed payloads silently fail with a `422 Unprocessable Entity` or `400 Bad Request` error, leading to lost leads and broken pipelines.
+## Architecture & Features
 
-This architecture acts as an impenetrable shield:
-1. **Strict Pydantic Validation:** Drops invalid payloads immediately or coerces data into safe schemas.
-2. **LLM Normalization:** Uses an asynchronous OpenAI orchestration engine to analyze unstructured user inputs (e.g., "I want a cheap roof fix") and structure them into deterministic CRM tags.
-3. **Zero-Fault Routing:** Guarantees that only structurally sound, highly-qualified leads ever hit the CRM pipeline.
+- **Strict Structured AI Output**: Utilizes Pydantic schemas via `litellm` to guarantee the LLM outputs perfect JSON qualification metrics (Urgency Score, Estimated Capital, etc.). Never breaks downstream pipelines.
+- **Billing & Cost Management**: Implements an SQLite tracking layer (`billing.db`) that limits the number of requests per client ID, simulating Freemium/SaaS monetization strategies for AI tools.
+- **Dead Letter Queue (DLQ)**: If the LLM engine fails, the webhook payload is safely stored in an SQLite Dead Letter Queue (`failed_leads.db`).
+- **Any-AI Provider Support**: Uses `litellm` so you can plug in OpenAI, Anthropic, or even run entirely offline via Ollama.
+- **Visual Webhook Testing UI**: Comes with a built-in interactive simulator accessible via the browser to visually test how the AI engine qualifies leads.
 
-## Installation (Plug & Play)
+## Workflow Diagram
 
-### 1. Requirements
-- Python 3.10+
-- FastAPI, Uvicorn, OpenAI
-
-### 2. Setup
-```bash
-git clone https://github.com/Shiro291/ghl-make-qualifier.git
-cd ghl-make-qualifier
-pip install -r requirements.txt
+```mermaid
+graph TD
+    A[Inbound Webhook: Meta/Landing Page] --> B(FastAPI Endpoint)
+    B --> C{Billing Quota Check}
+    
+    C -- Limit Exceeded --> D[429 Too Many Requests]
+    C -- Valid --> E[LLM Qualifier Engine]
+    
+    E --> F{Strict JSON Schema Output}
+    
+    F -- API/LLM Error --> G[Save to Dead Letter Queue DB]
+    F -- Success --> H{Qualification Status}
+    
+    H -- Qualified --> I[Route to GoHighLevel Pipeline]
+    H -- Handoff --> J[Route to Slack Manual Review]
 ```
 
-### 3. Execution
-Start the local Uvicorn server:
-```bash
-uvicorn index:app --reload --port 8000
-```
-Your webhook will now be listening on `http://localhost:8000/webhook`.
+## Quick Start
 
-## Deployment
-This architecture is built for serverless environments. It is configured to deploy directly to Vercel via zero-config. Simply push this repository to Vercel and it will expose the API endpoint globally.
+1. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-*Engineered by Fathan Faqih Ali.*
+2. **Configure Environment**
+   Rename `.env.example` to `.env` and set your preferred AI provider key:
+   ```env
+   LLM_MODEL=gpt-4o-mini
+   LLM_API_KEY=sk-your-openai-api-key
+   ```
+
+3. **Run the Server**
+   ```bash
+   python -m src.main
+   ```
+
+4. **Test the UI**
+   Open your browser to `http://localhost:8000` to interact with the Glassmorphic Simulator Frontend. Submit a test lead to see the AI qualification in action!
+
+## Project Structure
+- `/src/api` - FastAPI Routing endpoints
+- `/src/ai` - LLM interaction using Litellm and Pydantic Structured Outputs
+- `/src/core` - Core Pydantic Models defining the exact data shapes
+- `/src/services` - Billing quota engine & Dead Letter Queue (SQLite)
+- `/src/frontend` - HTML/CSS for the testing interface

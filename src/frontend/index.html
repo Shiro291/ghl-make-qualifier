@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lead Qualifier Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #252542);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            margin-top: 0;
+            font-weight: 500;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #result {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-panel">
+    <h2>Webhook Simulator</h2>
+    <p>Simulate an inbound lead from Meta Ads/Landing Page.</p>
+    <input type="text" id="name" placeholder="Name" value="John Doe">
+    <input type="email" id="email" placeholder="Email" value="john@example.com">
+    <input type="text" id="phone" placeholder="Phone" value="1234567890">
+    <textarea id="inquiry" rows="4" placeholder="Inquiry Text">Hi, I have $50k to invest and I need help managing my portfolio urgently.</textarea>
+    <button onclick="submitLead()">Submit Lead</button>
+    <div id="result"></div>
+</div>
+
+<script>
+    async function submitLead() {
+        const payload = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            inquiry_text: document.getElementById('inquiry').value
+        };
+
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerText = "Processing via LLM Engine...";
+
+        try {
+            const res = await fetch('/webhook/meta-lead', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            resultDiv.innerText = JSON.stringify(data, null, 2);
+        } catch (err) {
+            resultDiv.innerText = "Error: " + err.message;
+        }
+    }
+</script>
+
+</body>
+</html>
